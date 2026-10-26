@@ -18,12 +18,13 @@ void on_message(const char *topic, const char *data)
 
 void app_main(void)
 {
+    // Initialize the building management system
     ESP_ERROR_CHECK(management_init());
-
+// Start the existing MQTT network functionality
     net_start(HUB_CLIENT_ID, TOPIC_ROOMS_ALL, NULL); // no status topic for the hub, it is always online
-
+// Start the management CLI FreeRTOS task
     ESP_ERROR_CHECK(management_start_cli());
-    
+
     int open = 1;
     while (1) {
         net_publish_retained(TOPIC_HUB, open ? "open" : "closed"); // these messages are retained, so new subscribers will get the last message
