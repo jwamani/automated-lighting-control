@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "management.h"
 #include "esp_log.h"
 #include <stdbool.h>
@@ -289,5 +290,27 @@ esp_err_t management_set_emergency_override(bool enable)
     management_admin_update_activity();
 
     return ESP_OK;
+}
+
+// Display available CLI commands
+static void management_print_help(void)
+{
+    printf("\n");
+    printf("====================================\n");
+    printf("   CoCIS BUILDING MANAGEMENT SYSTEM\n");
+    printf("====================================\n");
+
+    printf("Available commands:\n");
+
+    printf("help                  - Show available commands\n");
+    printf("status                - Show building status\n");
+    printf("login                 - Administrator login\n");
+    printf("logout                - Administrator logout\n");
+    printf("schedule show         - Display building schedule\n");
+    printf("schedule set          - Change building schedule\n");
+    printf("override on           - Enable emergency override\n");
+    printf("override off          - Disable emergency override\n");
+
+    printf("====================================\n");
 }
 
