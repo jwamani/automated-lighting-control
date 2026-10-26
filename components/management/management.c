@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include <stdbool.h>
 #include <time.h>
+#include <string.h>
 
 // Identifies messages from our management module
 static const char *TAG = "MANAGEMENT";
@@ -18,6 +19,14 @@ static bool emergency_override = false;
 
 // Tracks whether the module has been initialized
 static bool initialized = false;
+
+// Tracks whether an administrator is authenticated
+static bool admin_logged_in = false;
+
+// Temporary demonstration PIN
+static const char *admin_pin = "2468";
+
+
 
 // Initialize the management system
 esp_err_t management_init(void)
@@ -132,4 +141,24 @@ esp_err_t management_set_schedule(
              closing_hour, closing_minute);
 
     return ESP_OK;
+}
+
+// Authenticate an administrator
+bool management_admin_login(const char *pin)
+{
+    if (!initialized || pin == NULL) {
+        return false;
+    }
+
+    if (strcmp(pin, admin_pin) == 0) {
+        admin_logged_in = true;
+
+        ESP_LOGI(TAG, "Administrator login successful");
+
+        return true;
+    }
+
+    ESP_LOGW(TAG, "Administrator login failed");
+
+    return false;
 }
