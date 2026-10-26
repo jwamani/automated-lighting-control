@@ -144,6 +144,7 @@ if (!management_admin_is_logged_in()) {
         close_minute < 0 || close_minute > 59) {
 
         ESP_LOGE(TAG, "Invalid time entered");
+        management_admin_update_activity();
         return ESP_ERR_INVALID_ARG;
     }
 
