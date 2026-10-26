@@ -35,9 +35,10 @@ esp_err_t management_init(void)
         return ESP_OK;
     }
 
-    emergency_override = false;
+   emergency_override = false;
+admin_logged_in = false;
 
-    initialized = true;
+initialized = true;
 
     ESP_LOGI(TAG, "Management system initialized");
 
@@ -176,3 +177,4 @@ bool management_admin_is_logged_in(void)
 {
     return initialized && admin_logged_in;
 }
+
