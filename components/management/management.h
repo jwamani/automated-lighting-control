@@ -19,4 +19,12 @@ bool management_access_allowed(void);
 // Check whether emergency exit is enabled
 bool management_emergency_exit_allowed(void);
 
+// Update the building's opening and closing hours
+esp_err_t management_set_schedule(
+    int open_hour,
+    int open_minute,
+    int close_hour,
+    int close_minute
+);
+
 #endif
