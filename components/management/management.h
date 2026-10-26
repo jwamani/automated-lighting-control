@@ -35,4 +35,7 @@ void management_admin_logout(void);
 // Check whether an administrator is logged in
 bool management_admin_is_logged_in(void);
 
+// Refresh the administrator session after activity
+void management_admin_update_activity(void);
+
 #endif
