@@ -131,6 +131,12 @@ esp_err_t management_set_schedule(
     int close_hour,
     int close_minute)
 {
+    // Only an authenticated administrator can update the schedule
+if (!management_admin_is_logged_in()) {
+    ESP_LOGW(TAG, "Access denied. Administrator login required.");
+    return ESP_ERR_INVALID_STATE;
+}
+
     // Check that hours and minutes are valid
     if (open_hour < 0 || open_hour > 23 ||
         close_hour < 0 || close_hour > 23 ||
