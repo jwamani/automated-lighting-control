@@ -250,3 +250,11 @@ bool management_admin_is_logged_in(void)
     return true;
 }
 
+// Refresh the administrator's activity timestamp
+void management_admin_update_activity(void)
+{
+    if (management_admin_is_logged_in()) {
+        last_admin_activity = esp_timer_get_time();
+    }
+}
+
