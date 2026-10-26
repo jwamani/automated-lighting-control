@@ -37,5 +37,7 @@ bool management_admin_is_logged_in(void);
 
 // Refresh the administrator session after activity
 void management_admin_update_activity(void);
+// Enable or disable emergency override
+esp_err_t management_set_emergency_override(bool enable);
 
 #endif
