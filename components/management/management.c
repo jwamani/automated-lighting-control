@@ -358,3 +358,30 @@ static void management_cli_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
+// Start the management CLI FreeRTOS task
+esp_err_t management_start_cli(void)
+{
+    if (!initialized) {
+        ESP_LOGE(TAG, "Management system not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    BaseType_t result = xTaskCreate(
+        management_cli_task,
+        "management_cli",
+        4096,
+        NULL,
+        5,
+        NULL
+    );
+
+    if (result != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create management CLI task");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Management CLI task created");
+
+    return ESP_OK;
+}
+
