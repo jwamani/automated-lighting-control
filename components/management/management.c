@@ -1,6 +1,7 @@
 #include "management.h"
 #include "esp_log.h"
 #include <stdbool.h>
+#include <time.h>
 
 // Identifies messages from our management module
 static const char *TAG = "MANAGEMENT";
@@ -50,4 +51,20 @@ static bool is_within_schedule(int hour, int minute)
 
     return (current_time >= opening_time &&
             current_time < closing_time);
+}
+
+// Check whether the building is currently open
+bool management_is_open_now(void)
+{
+    time_t now;
+    struct tm time_info;
+
+    time(&now);
+
+    localtime_r(&now, &time_info);
+
+    return is_within_schedule(
+        time_info.tm_hour,
+        time_info.tm_min
+    );
 }
