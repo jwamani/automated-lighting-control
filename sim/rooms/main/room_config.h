@@ -1,4 +1,4 @@
-// room_config.h - pins and timings for the room terminal
+// room_config.h - pins and timings for the room terminal (owner: rooms)
 #pragma once
 
 #define PIN_PIR              4
