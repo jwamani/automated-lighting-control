@@ -7,6 +7,7 @@
 
 #include "app_config.h"
 #include "net.h"
+#include "management.h"
 
 static const char *TAG = "MAIN_HUB";
 
@@ -17,6 +18,7 @@ void on_message(const char *topic, const char *data)
 
 void app_main(void)
 {
+    ESP_ERROR_CHECK(management_init());
     net_start(HUB_CLIENT_ID, TOPIC_ROOMS_ALL, NULL); // no status topic for the hub, it is always online
 
     int open = 1;
