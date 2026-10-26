@@ -223,6 +223,7 @@ bool management_admin_login(const char *pin)
 void management_admin_logout(void)
 {
     admin_logged_in = false;
+    last_admin_activity = 0;
 
     ESP_LOGI(TAG, "Administrator logged out");
 }

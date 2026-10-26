@@ -30,13 +30,8 @@ esp_err_t management_set_schedule(
 bool management_admin_login(const char *pin);
 
 // Log out the administrator
-void management_admin_logout(void)
-{
-    admin_logged_in = false;
-    last_admin_activity = 0;
+void management_admin_logout(void);
 
-    ESP_LOGI(TAG, "Administrator logged out");
-}
 // Check whether an administrator is logged in
 bool management_admin_is_logged_in(void);
 
