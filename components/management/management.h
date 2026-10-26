@@ -29,4 +29,7 @@ esp_err_t management_set_schedule(
 // Authenticate an administrator using a PIN
 bool management_admin_login(const char *pin);
 
+// Log out the administrator
+void management_admin_logout(void);
+
 #endif
