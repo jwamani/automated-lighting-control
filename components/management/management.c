@@ -162,3 +162,11 @@ bool management_admin_login(const char *pin)
 
     return false;
 }
+
+// End the administrator session
+void management_admin_logout(void)
+{
+    admin_logged_in = false;
+
+    ESP_LOGI(TAG, "Administrator logged out");
+}
