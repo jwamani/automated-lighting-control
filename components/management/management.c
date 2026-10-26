@@ -49,8 +49,11 @@ esp_err_t management_init(void)
         return ESP_OK;
     }
 
-   emergency_override = false;
+  emergency_override = false;
 admin_logged_in = false;
+
+failed_login_attempts = 0;
+lockout_until = 0;
 
 initialized = true;
 
