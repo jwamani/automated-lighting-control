@@ -43,7 +43,11 @@ static int failed_login_attempts = 0;
 static int64_t lockout_until = 0;
 
 
+#define SESSION_TIMEOUT_US (5LL * 60LL * 1000000LL)
 
+
+// Time of the administrator's last activity
+static int64_t last_admin_activity = 0;
 
 // Initialize the management system
 esp_err_t management_init(void)
@@ -59,12 +63,7 @@ failed_login_attempts = 0;
 lockout_until = 0;
 last_admin_activity = 0;
 // Administrator session timeout: 5 minutes
-#define SESSION_TIMEOUT_US (5LL * 60LL * 1000000LL)
 
-static int64_t last_admin_activity = 0;
-
-// Time of the administrator's last activity
-static int64_t last_admin_activity = 0;
 
 
 
