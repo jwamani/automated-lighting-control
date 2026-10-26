@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <string.h>
+#include "esp_timer.h"
 
 // Identifies messages from our management module
 static const char *TAG = "MANAGEMENT";
@@ -25,6 +26,19 @@ static bool admin_logged_in = false;
 
 // Temporary demonstration PIN
 static const char *admin_pin = "2468";
+
+// Maximum number of consecutive incorrect PIN attempts
+#define MAX_LOGIN_ATTEMPTS 3
+
+// Lockout duration in microseconds (60 seconds)
+#define LOCKOUT_DURATION_US (60LL * 1000000LL)
+
+// Number of consecutive failed login attempts
+static int failed_login_attempts = 0;
+
+// Time when the current lockout expires
+static int64_t lockout_until = 0;
+
 
 
 
@@ -145,21 +159,48 @@ esp_err_t management_set_schedule(
 }
 
 // Authenticate an administrator
+// Authenticate an administrator with login attempt protection
 bool management_admin_login(const char *pin)
 {
     if (!initialized || pin == NULL) {
         return false;
     }
 
+    // Get the current time in microseconds
+    int64_t current_time = esp_timer_get_time();
+
+    // Check whether the system is currently locked
+    if (current_time < lockout_until) {
+        ESP_LOGW(TAG, "Login temporarily locked. Try again later.");
+        return false;
+    }
+
+    // Check whether the PIN is correct
     if (strcmp(pin, admin_pin) == 0) {
         admin_logged_in = true;
+
+        failed_login_attempts = 0;
+        lockout_until = 0;
 
         ESP_LOGI(TAG, "Administrator login successful");
 
         return true;
     }
 
-    ESP_LOGW(TAG, "Administrator login failed");
+    // Incorrect PIN
+    failed_login_attempts++;
+
+    ESP_LOGW(TAG, "Incorrect PIN. Failed attempts: %d",
+             failed_login_attempts);
+
+    // Lock the system after three incorrect attempts
+    if (failed_login_attempts >= MAX_LOGIN_ATTEMPTS) {
+        lockout_until = current_time + LOCKOUT_DURATION_US;
+
+        failed_login_attempts = 0;
+
+        ESP_LOGW(TAG, "Too many failed attempts. Login locked for 60 seconds.");
+    }
 
     return false;
 }
