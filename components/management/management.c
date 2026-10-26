@@ -186,16 +186,20 @@ bool management_admin_login(const char *pin)
     }
 
     // Check whether the PIN is correct
-    if (strcmp(pin, admin_pin) == 0) {
-        admin_logged_in = true;
+   if (strcmp(pin, admin_pin) == 0) {
+    admin_logged_in = true;
 
-        failed_login_attempts = 0;
-        lockout_until = 0;
+    failed_login_attempts = 0;
+    lockout_until = 0;
 
-        ESP_LOGI(TAG, "Administrator login successful");
+    // Record when the administrator logged in
+    last_admin_activity = current_time;
 
-        return true;
-    }
+    ESP_LOGI(TAG, "Administrator login successful");
+
+    return true;
+}
+
 
     // Incorrect PIN
     failed_login_attempts++;
@@ -224,8 +228,25 @@ void management_admin_logout(void)
 }
 
 // Check whether an administrator is logged in
+
+// Check whether the administrator session is still valid
 bool management_admin_is_logged_in(void)
 {
-    return initialized && admin_logged_in;
+    if (!initialized || !admin_logged_in) {
+        return false;
+    }
+
+    int64_t current_time = esp_timer_get_time();
+
+    // Check whether the session has expired
+    if ((current_time - last_admin_activity) >= SESSION_TIMEOUT_US) {
+        admin_logged_in = false;
+
+        ESP_LOGW(TAG, "Administrator session expired");
+
+        return false;
+    }
+
+    return true;
 }
 
