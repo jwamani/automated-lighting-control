@@ -68,3 +68,13 @@ bool management_is_open_now(void)
         time_info.tm_min
     );
 }
+
+// Determine whether normal building access is allowed
+bool management_access_allowed(void)
+{
+    if (!initialized) {
+        return false;
+    }
+
+    return management_is_open_now();
+}
