@@ -32,4 +32,7 @@ bool management_admin_login(const char *pin);
 // Log out the administrator
 void management_admin_logout(void);
 
+// Check whether an administrator is logged in
+bool management_admin_is_logged_in(void);
+
 #endif
