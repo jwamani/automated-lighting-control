@@ -26,5 +26,7 @@ esp_err_t management_set_schedule(
     int close_hour,
     int close_minute
 );
+// Authenticate an administrator using a PIN
+bool management_admin_login(const char *pin);
 
 #endif
