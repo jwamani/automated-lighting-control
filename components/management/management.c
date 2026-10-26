@@ -260,3 +260,27 @@ void management_admin_update_activity(void)
     }
 }
 
+// Enable or disable emergency override
+esp_err_t management_set_emergency_override(bool enable)
+{
+    // Only an authenticated administrator can change the override
+    if (!management_admin_is_logged_in()) {
+        ESP_LOGW(TAG, "Access denied. Administrator login required.");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    // Update emergency override state
+    emergency_override = enable;
+
+    if (enable) {
+        ESP_LOGW(TAG, "EMERGENCY OVERRIDE ACTIVATED");
+    } else {
+        ESP_LOGI(TAG, "Emergency override deactivated");
+    }
+
+    // Record administrator activity
+    management_admin_update_activity();
+
+    return ESP_OK;
+}
+
