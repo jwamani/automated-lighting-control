@@ -88,3 +88,48 @@ bool management_emergency_exit_allowed(void)
 
     return emergency_override;
 }
+
+// Update the building's operating hours
+esp_err_t management_set_schedule(
+    int open_hour,
+    int open_minute,
+    int close_hour,
+    int close_minute)
+{
+    // Check that hours and minutes are valid
+    if (open_hour < 0 || open_hour > 23 ||
+        close_hour < 0 || close_hour > 23 ||
+        open_minute < 0 || open_minute > 59 ||
+        close_minute < 0 || close_minute > 59) {
+
+        ESP_LOGE(TAG, "Invalid time entered");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Convert both times into minutes
+    int opening = open_hour * 60 + open_minute;
+    int closing = close_hour * 60 + close_minute;
+
+    // Closing time must be later than opening time
+    if (opening >= closing) {
+        ESP_LOGE(TAG, "Closing time must be after opening time");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Update the schedule
+    opening_hour = open_hour;
+    opening_minute = open_minute;
+
+    closing_hour = close_hour;
+    closing_minute = close_minute;
+
+    ESP_LOGI(TAG, "Building schedule updated");
+
+    ESP_LOGI(TAG, "New opening time: %02d:%02d",
+             opening_hour, opening_minute);
+
+    ESP_LOGI(TAG, "New closing time: %02d:%02d",
+             closing_hour, closing_minute);
+
+    return ESP_OK;
+}
