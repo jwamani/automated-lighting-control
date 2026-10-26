@@ -39,3 +39,15 @@ esp_err_t management_init(void)
 
     return ESP_OK;
 }
+// Check whether a given time falls within building opening hours
+static bool is_within_schedule(int hour, int minute)
+{
+    int current_time = hour * 60 + minute;
+
+    int opening_time = opening_hour * 60 + opening_minute;
+
+    int closing_time = closing_hour * 60 + closing_minute;
+
+    return (current_time >= opening_time &&
+            current_time < closing_time);
+}
