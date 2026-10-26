@@ -5,6 +5,8 @@
 #include <time.h>
 #include <string.h>
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 // Identifies messages from our management module
 static const char *TAG = "MANAGEMENT";
@@ -312,5 +314,47 @@ static void management_print_help(void)
     printf("override off          - Disable emergency override\n");
 
     printf("====================================\n");
+}
+
+// Task responsible for reading administrator commands
+static void management_cli_task(void *pvParameters)
+{
+    char command[100];
+
+    printf("\nCoCIS Management CLI Started\n");
+    printf("Type 'help' to view available commands.\n");
+
+    while (1) {
+
+        printf("\nCoCIS> ");
+        fflush(stdout);
+
+        // Read a command from the Serial Monitor
+        if (fgets(command, sizeof(command), stdin) == NULL) {
+            vTaskDelay(pdMS_TO_TICKS(100));
+            continue;
+        }
+
+        // Remove the newline character
+        command[strcspn(command, "\r\n")] = '\0';
+
+        // Process the help command
+        if (strcmp(command, "help") == 0) {
+            management_print_help();
+        }
+
+        // Process the exit command
+        else if (strcmp(command, "exit") == 0) {
+            printf("CLI session ended.\n");
+            break;
+        }
+
+        // Handle unknown commands
+        else {
+            printf("Unknown command. Type 'help' for assistance.\n");
+        }
+    }
+
+    vTaskDelete(NULL);
 }
 
