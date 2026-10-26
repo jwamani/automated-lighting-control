@@ -54,6 +54,7 @@ admin_logged_in = false;
 
 failed_login_attempts = 0;
 lockout_until = 0;
+last_admin_activity = 0;
 // Administrator session timeout: 5 minutes
 #define SESSION_TIMEOUT_US (5LL * 60LL * 1000000LL)
 
