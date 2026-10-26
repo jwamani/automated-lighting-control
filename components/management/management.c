@@ -78,3 +78,13 @@ bool management_access_allowed(void)
 
     return management_is_open_now();
 }
+ 
+// Check whether emergency exit override is enabled
+bool management_emergency_exit_allowed(void)
+{
+    if (!initialized) {
+        return false;
+    }
+
+    return emergency_override;
+}
