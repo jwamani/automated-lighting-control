@@ -19,8 +19,11 @@ void on_message(const char *topic, const char *data)
 void app_main(void)
 {
     ESP_ERROR_CHECK(management_init());
+
     net_start(HUB_CLIENT_ID, TOPIC_ROOMS_ALL, NULL); // no status topic for the hub, it is always online
 
+    ESP_ERROR_CHECK(management_start_cli());
+    
     int open = 1;
     while (1) {
         net_publish_retained(TOPIC_HUB, open ? "open" : "closed"); // these messages are retained, so new subscribers will get the last message
