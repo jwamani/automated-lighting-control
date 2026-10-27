@@ -354,8 +354,23 @@ static void management_print_status(void)
            emergency_override ? "ON" : "OFF");
 
     printf("====================================\n");
-}
 
+}
+// Display the configured building opening and closing times
+static void management_print_schedule(void)
+{
+    printf("\n====================================\n");
+    printf("       CoCIS BUILDING SCHEDULE\n");
+    printf("====================================\n");
+
+    printf("Opening Time: %02d:%02d\n",
+           opening_hour, opening_minute);
+
+    printf("Closing Time: %02d:%02d\n",
+           closing_hour, closing_minute);
+
+    printf("====================================\n");
+}
 // Task responsible for reading administrator commands
 static void management_cli_task(void *pvParameters)
 {
