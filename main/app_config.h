@@ -5,7 +5,7 @@
 
 
 // use test.mosquitto.live or 
-#define MQTT_BROKER_URI "mqtt://<<your_pc_ip>>:1883"
+#define MQTT_BROKER_URI "mqtt://broker.hivemq.com:1883"
 #define MQTT_TOPIC "demo/chat"
 
 #define PUBLISH_PERIOD_MS 5000
