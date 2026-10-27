@@ -317,6 +317,35 @@ static void management_print_help(void)
     printf("====================================\n");
 }
 
+// Display the current building management status
+static void management_print_status(void)
+{
+    printf("\n====================================\n");
+    printf("       CoCIS BUILDING STATUS\n");
+    printf("====================================\n");
+
+    // Display configured opening and closing times
+    printf("Opening Time: %02d:%02d\n",
+           opening_hour, opening_minute);
+
+    printf("Closing Time: %02d:%02d\n",
+           closing_hour, closing_minute);
+
+    // Check whether the building is currently open
+    printf("Building Open Now: %s\n",
+           management_is_open_now() ? "YES" : "NO");
+
+    // Check administrator authentication
+    printf("Administrator Logged In: %s\n",
+           management_admin_is_logged_in() ? "YES" : "NO");
+
+    // Check emergency override
+    printf("Emergency Override: %s\n",
+           emergency_override ? "ON" : "OFF");
+
+    printf("====================================\n");
+}
+
 // Task responsible for reading administrator commands
 static void management_cli_task(void *pvParameters)
 {
