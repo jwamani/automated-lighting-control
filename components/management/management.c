@@ -482,6 +482,12 @@ static void management_cli_task(void *pvParameters)
     }
 }
 
+else if (strcmp(command, "schedule show") == 0)
+{
+    management_print_schedule();
+}
+
+
             // Process the exit command
             else if (strcmp(command, "exit") == 0)
             {
