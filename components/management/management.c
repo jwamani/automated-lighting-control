@@ -453,6 +453,19 @@ static void management_cli_task(void *pvParameters)
                 // Clear the PIN from the temporary input buffer
                 memset(pin, 0, sizeof(pin));
             }
+        // Process the logout command
+            else if (strcmp(command, "logout") == 0)
+{
+    if (management_admin_is_logged_in())
+    {
+        management_admin_logout();
+        printf("\nAdministrator logged out successfully.\n");
+    }
+    else
+    {
+        printf("\nNo administrator is currently logged in.\n");
+    }
+}
 
             // Process the exit command
             else if (strcmp(command, "exit") == 0)
