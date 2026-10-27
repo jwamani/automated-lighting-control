@@ -42,9 +42,7 @@ static int failed_login_attempts = 0;
 // Time when the current lockout expires
 static int64_t lockout_until = 0;
 
-
 #define SESSION_TIMEOUT_US (5LL * 60LL * 1000000LL)
-
 
 // Time of the administrator's last activity
 static int64_t last_admin_activity = 0;
@@ -52,22 +50,20 @@ static int64_t last_admin_activity = 0;
 // Initialize the management system
 esp_err_t management_init(void)
 {
-    if (initialized) {
+    if (initialized)
+    {
         return ESP_OK;
     }
 
-  emergency_override = false;
-admin_logged_in = false;
+    emergency_override = false;
+    admin_logged_in = false;
 
-failed_login_attempts = 0;
-lockout_until = 0;
-last_admin_activity = 0;
-// Administrator session timeout: 5 minutes
+    failed_login_attempts = 0;
+    lockout_until = 0;
+    last_admin_activity = 0;
+    // Administrator session timeout: 5 minutes
 
-
-
-
-initialized = true;
+    initialized = true;
 
     ESP_LOGI(TAG, "Management system initialized");
 
@@ -104,24 +100,25 @@ bool management_is_open_now(void)
 
     return is_within_schedule(
         time_info.tm_hour,
-        time_info.tm_min
-    );
+        time_info.tm_min);
 }
 
 // Determine whether normal building access is allowed
 bool management_access_allowed(void)
 {
-    if (!initialized) {
+    if (!initialized)
+    {
         return false;
     }
 
     return management_is_open_now();
 }
- 
+
 // Check whether emergency exit override is enabled
 bool management_emergency_exit_allowed(void)
 {
-    if (!initialized) {
+    if (!initialized)
+    {
         return false;
     }
 
@@ -136,16 +133,18 @@ esp_err_t management_set_schedule(
     int close_minute)
 {
     // Only an authenticated administrator can update the schedule
-if (!management_admin_is_logged_in()) {
-    ESP_LOGW(TAG, "Access denied. Administrator login required.");
-    return ESP_ERR_INVALID_STATE;
-}
+    if (!management_admin_is_logged_in())
+    {
+        ESP_LOGW(TAG, "Access denied. Administrator login required.");
+        return ESP_ERR_INVALID_STATE;
+    }
 
     // Check that hours and minutes are valid
     if (open_hour < 0 || open_hour > 23 ||
         close_hour < 0 || close_hour > 23 ||
         open_minute < 0 || open_minute > 59 ||
-        close_minute < 0 || close_minute > 59) {
+        close_minute < 0 || close_minute > 59)
+    {
 
         ESP_LOGE(TAG, "Invalid time entered");
         management_admin_update_activity();
@@ -157,7 +156,8 @@ if (!management_admin_is_logged_in()) {
     int closing = close_hour * 60 + close_minute;
 
     // Closing time must be later than opening time
-    if (opening >= closing) {
+    if (opening >= closing)
+    {
         ESP_LOGE(TAG, "Closing time must be after opening time");
         return ESP_ERR_INVALID_ARG;
     }
@@ -184,7 +184,8 @@ if (!management_admin_is_logged_in()) {
 // Authenticate an administrator with login attempt protection
 bool management_admin_login(const char *pin)
 {
-    if (!initialized || pin == NULL) {
+    if (!initialized || pin == NULL)
+    {
         return false;
     }
 
@@ -192,26 +193,27 @@ bool management_admin_login(const char *pin)
     int64_t current_time = esp_timer_get_time();
 
     // Check whether the system is currently locked
-    if (current_time < lockout_until) {
+    if (current_time < lockout_until)
+    {
         ESP_LOGW(TAG, "Login temporarily locked. Try again later.");
         return false;
     }
 
     // Check whether the PIN is correct
-   if (strcmp(pin, admin_pin) == 0) {
-    admin_logged_in = true;
+    if (strcmp(pin, admin_pin) == 0)
+    {
+        admin_logged_in = true;
 
-    failed_login_attempts = 0;
-    lockout_until = 0;
+        failed_login_attempts = 0;
+        lockout_until = 0;
 
-    // Record when the administrator logged in
-    last_admin_activity = current_time;
+        // Record when the administrator logged in
+        last_admin_activity = current_time;
 
-    ESP_LOGI(TAG, "Administrator login successful");
+        ESP_LOGI(TAG, "Administrator login successful");
 
-    return true;
-}
-
+        return true;
+    }
 
     // Incorrect PIN
     failed_login_attempts++;
@@ -220,7 +222,8 @@ bool management_admin_login(const char *pin)
              failed_login_attempts);
 
     // Lock the system after three incorrect attempts
-    if (failed_login_attempts >= MAX_LOGIN_ATTEMPTS) {
+    if (failed_login_attempts >= MAX_LOGIN_ATTEMPTS)
+    {
         lockout_until = current_time + LOCKOUT_DURATION_US;
 
         failed_login_attempts = 0;
@@ -245,14 +248,16 @@ void management_admin_logout(void)
 // Check whether the administrator session is still valid
 bool management_admin_is_logged_in(void)
 {
-    if (!initialized || !admin_logged_in) {
+    if (!initialized || !admin_logged_in)
+    {
         return false;
     }
 
     int64_t current_time = esp_timer_get_time();
 
     // Check whether the session has expired
-    if ((current_time - last_admin_activity) >= SESSION_TIMEOUT_US) {
+    if ((current_time - last_admin_activity) >= SESSION_TIMEOUT_US)
+    {
         admin_logged_in = false;
 
         ESP_LOGW(TAG, "Administrator session expired");
@@ -266,7 +271,8 @@ bool management_admin_is_logged_in(void)
 // Refresh the administrator's activity timestamp
 void management_admin_update_activity(void)
 {
-    if (management_admin_is_logged_in()) {
+    if (management_admin_is_logged_in())
+    {
         last_admin_activity = esp_timer_get_time();
     }
 }
@@ -275,7 +281,8 @@ void management_admin_update_activity(void)
 esp_err_t management_set_emergency_override(bool enable)
 {
     // Only an authenticated administrator can change the override
-    if (!management_admin_is_logged_in()) {
+    if (!management_admin_is_logged_in())
+    {
         ESP_LOGW(TAG, "Access denied. Administrator login required.");
         return ESP_ERR_INVALID_STATE;
     }
@@ -283,9 +290,12 @@ esp_err_t management_set_emergency_override(bool enable)
     // Update emergency override state
     emergency_override = enable;
 
-    if (enable) {
+    if (enable)
+    {
         ESP_LOGW(TAG, "EMERGENCY OVERRIDE ACTIVATED");
-    } else {
+    }
+    else
+    {
         ESP_LOGI(TAG, "Emergency override deactivated");
     }
 
@@ -390,6 +400,11 @@ static void management_cli_task(void *pvParameters)
             {
                 management_print_help();
             }
+            // Process the status command
+            else if (strcmp(command, "status") == 0)
+            {
+                management_print_status();
+            }
 
             // Process the exit command
             else if (strcmp(command, "exit") == 0)
@@ -426,7 +441,8 @@ static void management_cli_task(void *pvParameters)
 // Start the management CLI FreeRTOS task
 esp_err_t management_start_cli(void)
 {
-    if (!initialized) {
+    if (!initialized)
+    {
         ESP_LOGE(TAG, "Management system not initialized");
         return ESP_ERR_INVALID_STATE;
     }
@@ -437,10 +453,10 @@ esp_err_t management_start_cli(void)
         4096,
         NULL,
         5,
-        NULL
-    );
+        NULL);
 
-    if (result != pdPASS) {
+    if (result != pdPASS)
+    {
         ESP_LOGE(TAG, "Failed to create management CLI task");
         return ESP_FAIL;
     }
@@ -449,4 +465,3 @@ esp_err_t management_start_cli(void)
 
     return ESP_OK;
 }
-
