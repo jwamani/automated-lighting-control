@@ -405,6 +405,54 @@ static void management_cli_task(void *pvParameters)
             {
                 management_print_status();
             }
+            else if (strcmp(command, "login") == 0)
+            {
+                printf("\nEnter administrator PIN: ");
+                fflush(stdout);
+
+                char pin[20];
+                int pin_index = 0;
+
+                while (1)
+                {
+                    int ch = getchar();
+
+                    if (ch == EOF)
+                    {
+                        clearerr(stdin);
+                        vTaskDelay(pdMS_TO_TICKS(20));
+                        continue;
+                    }
+
+                    if (ch == '\n' || ch == '\r')
+                    {
+                        if (pin_index == 0)
+                        {
+                            continue;
+                        }
+
+                        pin[pin_index] = '\0';
+                        break;
+                    }
+
+                    if (pin_index < sizeof(pin) - 1)
+                    {
+                        pin[pin_index++] = (char)ch;
+                    }
+                }
+
+                if (management_admin_login(pin))
+                {
+                    printf("\nAdministrator login successful!\n");
+                }
+                else
+                {
+                    printf("\nAdministrator login failed.\n");
+                }
+
+                // Clear the PIN from the temporary input buffer
+                memset(pin, 0, sizeof(pin));
+            }
 
             // Process the exit command
             else if (strcmp(command, "exit") == 0)
