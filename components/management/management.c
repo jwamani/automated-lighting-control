@@ -321,38 +321,73 @@ static void management_print_help(void)
 static void management_cli_task(void *pvParameters)
 {
     char command[100];
+    int index = 0;
 
     printf("\nCoCIS Management CLI Started\n");
     printf("Type 'help' to view available commands.\n");
 
-    while (1) {
+    printf("\nCoCIS> ");
+    fflush(stdout);
 
-        printf("\nCoCIS> ");
-        fflush(stdout);
+    while (1)
+    {
+        // Read one character from the Serial Monitor
+        int ch = getchar();
 
-        // Read a command from the Serial Monitor
-        if (fgets(command, sizeof(command), stdin) == NULL) {
-            vTaskDelay(pdMS_TO_TICKS(100));
+        // No character available
+        if (ch == EOF)
+        {
+            clearerr(stdin);
+            vTaskDelay(pdMS_TO_TICKS(20));
             continue;
         }
 
-        // Remove the newline character
-        command[strcspn(command, "\r\n")] = '\0';
+        // Check whether Enter was pressed
+        if (ch == '\n' || ch == '\r')
+        {
+            // Ignore an empty command
+            if (index == 0)
+            {
+                continue;
+            }
 
-        // Process the help command
-        if (strcmp(command, "help") == 0) {
-            management_print_help();
+            // Mark the end of the string
+            command[index] = '\0';
+
+            printf("\n");
+
+            // Process the help command
+            if (strcmp(command, "help") == 0)
+            {
+                management_print_help();
+            }
+
+            // Process the exit command
+            else if (strcmp(command, "exit") == 0)
+            {
+                printf("CLI session ended.\n");
+                break;
+            }
+
+            // Handle unknown commands
+            else
+            {
+                printf("Unknown command. Type 'help' for assistance.\n");
+            }
+
+            // Reset for the next command
+            index = 0;
+
+            printf("\nCoCIS> ");
+            fflush(stdout);
         }
-
-        // Process the exit command
-        else if (strcmp(command, "exit") == 0) {
-            printf("CLI session ended.\n");
-            break;
-        }
-
-        // Handle unknown commands
-        else {
-            printf("Unknown command. Type 'help' for assistance.\n");
+        else
+        {
+            // Store characters until the command is complete
+            if (index < sizeof(command) - 1)
+            {
+                command[index++] = (char)ch;
+            }
         }
     }
 
