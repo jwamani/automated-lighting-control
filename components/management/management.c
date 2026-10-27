@@ -480,7 +480,7 @@ static void management_cli_task(void *pvParameters)
                     printf("\nNo administrator is currently logged in.\n");
                 }
             }
-// Process the emergency override commands
+            // Process the emergency override commands
             else if (strcmp(command, "override on") == 0)
             {
                 if (management_set_emergency_override(true) == ESP_OK)
@@ -575,25 +575,25 @@ static void management_cli_task(void *pvParameters)
                     }
                 }
             }
-//overide on/off commands 
-else if (strcmp(command, "override on") == 0)
-{
-    if (!management_admin_is_logged_in())
-    {
-        printf("\nAccess denied. Administrator login required.\n");
-    }
-    else
-    {
-        if (management_set_emergency_override(true) == ESP_OK)
-        {
-            printf("\nEmergency override activated successfully!\n");
-        }
-        else
-        {
-            printf("\nFailed to activate emergency override.\n");
-        }
-    }
-}
+            // overide on/off commands
+            else if (strcmp(command, "override on") == 0)
+            {
+                if (!management_admin_is_logged_in())
+                {
+                    printf("\nAccess denied. Administrator login required.\n");
+                }
+                else
+                {
+                    if (management_set_emergency_override(true) == ESP_OK)
+                    {
+                        printf("\nEmergency override activated successfully!\n");
+                    }
+                    else
+                    {
+                        printf("\nFailed to activate emergency override.\n");
+                    }
+                }
+            }
             // Process the exit command
             else if (strcmp(command, "exit") == 0)
             {
