@@ -354,7 +354,6 @@ static void management_print_status(void)
            emergency_override ? "ON" : "OFF");
 
     printf("====================================\n");
-
 }
 // Display the configured building opening and closing times
 static void management_print_schedule(void)
@@ -468,25 +467,114 @@ static void management_cli_task(void *pvParameters)
                 // Clear the PIN from the temporary input buffer
                 memset(pin, 0, sizeof(pin));
             }
-        // Process the logout command
+            // Process the logout command
             else if (strcmp(command, "logout") == 0)
-{
-    if (management_admin_is_logged_in())
-    {
-        management_admin_logout();
-        printf("\nAdministrator logged out successfully.\n");
-    }
-    else
-    {
-        printf("\nNo administrator is currently logged in.\n");
-    }
-}
+            {
+                if (management_admin_is_logged_in())
+                {
+                    management_admin_logout();
+                    printf("\nAdministrator logged out successfully.\n");
+                }
+                else
+                {
+                    printf("\nNo administrator is currently logged in.\n");
+                }
+            }
+// Process the emergency override commands
+            else if (strcmp(command, "override on") == 0)
+            {
+                if (management_set_emergency_override(true) == ESP_OK)
+                {
+                    printf("\nEmergency override enabled.\n");
+                }
+                else
+                {
+                    printf("\nFailed to enable emergency override.\n");
+                }
+            }
+            else if (strcmp(command, "override off") == 0)
+            {
+                if (management_set_emergency_override(false) == ESP_OK)
+                {
+                    printf("\nEmergency override disabled.\n");
+                }
+                else
+                {
+                    printf("\nFailed to disable emergency override.\n");
+                }
+            }
+            // Process the schedule commands
+            else if (strcmp(command, "schedule show") == 0)
+            {
+                management_print_schedule();
+            }
+            // Process the schedule set command
+            else if (strcmp(command, "schedule set") == 0)
+            {
+                if (!management_admin_is_logged_in())
+                {
+                    printf("\nAccess denied. Administrator login required.\n");
+                }
+                else
+                {
+                    printf("\nEnter opening and closing times.\n");
+                    printf("Format: HH:MM HH:MM\n");
+                    printf("Example: 07:30 18:00\n");
+                    printf("Enter times: ");
+                    fflush(stdout);
 
-else if (strcmp(command, "schedule show") == 0)
-{
-    management_print_schedule();
-}
+                    char time_input[50];
+                    int time_index = 0;
 
+                    while (1)
+                    {
+                        int ch = getchar();
+
+                        if (ch == EOF)
+                        {
+                            clearerr(stdin);
+                            vTaskDelay(pdMS_TO_TICKS(20));
+                            continue;
+                        }
+
+                        if (ch == '\n' || ch == '\r')
+                        {
+                            if (time_index == 0)
+                            {
+                                continue;
+                            }
+
+                            time_input[time_index] = '\0';
+                            break;
+                        }
+
+                        if (time_index < sizeof(time_input) - 1)
+                        {
+                            time_input[time_index++] = (char)ch;
+                        }
+                    }
+
+                    int open_h, open_m, close_h, close_m;
+                    char extra;
+
+                    if (sscanf(time_input, "%d:%d %d:%d %c",
+                               &open_h, &open_m, &close_h, &close_m,
+                               &extra) != 4)
+                    {
+                        printf("\nInvalid format. Use HH:MM HH:MM.\n");
+                    }
+                    else if (management_set_schedule(open_h, open_m,
+                                                     close_h, close_m) == ESP_OK)
+                    {
+                        printf("\nBuilding schedule updated successfully!\n");
+                        management_print_schedule();
+                    }
+                    else
+                    {
+                        printf("\nFailed to update building schedule.\n");
+                    }
+                }
+            }
 
             // Process the exit command
             else if (strcmp(command, "exit") == 0)
