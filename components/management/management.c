@@ -324,7 +324,7 @@ static void management_print_help(void)
     printf("schedule set          - Change building schedule\n");
     printf("override on           - Enable emergency override\n");
     printf("override off          - Disable emergency override\n");
-
+    printf("occupancy rooms <id>  - Show room occupancy status\n");
     printf("====================================\n");
 }
 
@@ -438,6 +438,42 @@ static void management_cli_task(void *pvParameters)
                 else
                 {
                     printf("\nFailed to retrieve building occupancy.\n");
+                }
+            }
+            // Display occupancy status for a particular room
+            else if (strncmp(command, "occupancy rooms ", 16) == 0)
+            {
+                int room_id = 0;
+                char extra;
+
+                // Read the room number and reject unexpected extra input
+                if (sscanf(command + 16, "%d %c", &room_id, &extra) != 1 ||
+                    room_id <= 0)
+                {
+                    printf("\nInvalid room ID. Example: occupancy rooms 1\n");
+                }
+                else
+                {
+                    bool occupied = false;
+
+                    esp_err_t result =
+                        management_get_room_occupancy(room_id, &occupied);
+
+                    if (result == ESP_OK)
+                    {
+                        printf("\nRoom %d occupancy: %s\n",
+                               room_id, occupied ? "OCCUPIED" : "UNOCCUPIED");
+                    }
+                    else if (result == ESP_ERR_NOT_SUPPORTED)
+                    {
+                        printf("\nRoom %d occupancy: Live data unavailable.\n",
+                               room_id);
+                    }
+                    else
+                    {
+                        printf("\nFailed to retrieve Room %d occupancy.\n",
+                               room_id);
+                    }
                 }
             }
             else if (strcmp(command, "login") == 0)
