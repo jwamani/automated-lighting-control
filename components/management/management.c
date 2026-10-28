@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "management.h"
+#include "management_data.h"
 #include "esp_log.h"
 #include <stdbool.h>
 #include <time.h>
@@ -418,6 +419,26 @@ static void management_cli_task(void *pvParameters)
             else if (strcmp(command, "status") == 0)
             {
                 management_print_status();
+            }
+            // Display the current building occupancy
+            else if (strcmp(command, "occupancy building") == 0)
+            {
+                int count = 0;
+
+                esp_err_t result = management_get_building_occupancy(&count);
+
+                if (result == ESP_OK)
+                {
+                    printf("\nCurrent building occupancy: %d people\n", count);
+                }
+                else if (result == ESP_ERR_NOT_SUPPORTED)
+                {
+                    printf("\nBuilding occupancy: Live data unavailable.\n");
+                }
+                else
+                {
+                    printf("\nFailed to retrieve building occupancy.\n");
+                }
             }
             else if (strcmp(command, "login") == 0)
             {
