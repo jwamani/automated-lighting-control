@@ -1,4 +1,4 @@
 {
   "idf.currentSetup": "C:\\esp\\v6.1-beta1\\esp-idf",
-  "cmake.sourceDirectory": "E:/SE/Year 3/Sem 1/Introduction to Embedded Systems/project/automated-lighting-control/benjamin_storage"
+  "cmake.sourceDirectory": "${workspaceFolder}/benjamin_storage"
 }
