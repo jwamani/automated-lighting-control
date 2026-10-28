@@ -8,7 +8,7 @@
       "id": "esp",
       "top": 0,
       "left": 0,
-      "attrs": { "macAddress": "24:0a:c4:00:01:01" }
+      "attrs": { "macAddress": "24:0a:c4:00:01:02" }
     },
     { "type": "wokwi-pir-motion-sensor", "id": "pir1", "top": -130, "left": -200, "attrs": {} },
     { "type": "wokwi-resistor", "id": "r1", "top": 40, "left": -230, "attrs": { "value": "220" } },
