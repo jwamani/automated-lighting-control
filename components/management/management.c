@@ -325,6 +325,8 @@ static void management_print_help(void)
     printf("override on           - Enable emergency override\n");
     printf("override off          - Disable emergency override\n");
     printf("occupancy rooms <id>  - Show room occupancy status\n");
+    printf("lighting status <id>  - Show room lighting status\n");
+    printf("access records        - View access history (admin only)\n");
     printf("====================================\n");
 }
 
@@ -474,6 +476,77 @@ static void management_cli_task(void *pvParameters)
                         printf("\nFailed to retrieve Room %d occupancy.\n",
                                room_id);
                     }
+                }
+            }
+            // Display lighting status for a particular room
+            else if (strncmp(command, "lighting status ", 16) == 0)
+            {
+                int room_id = 0;
+                char extra;
+
+                // Extract the room number from the command
+                if (sscanf(command + 16, "%d %c", &room_id, &extra) != 1 ||
+                    room_id <= 0)
+                {
+                    printf("\nInvalid room ID. Example: lighting status 1\n");
+                }
+                else
+                {
+                    bool light_on = false;
+
+                    esp_err_t result =
+                        management_get_lighting_status(room_id, &light_on);
+
+                    if (result == ESP_OK)
+                    {
+                        printf("\nRoom %d lighting status: %s\n",
+                               room_id, light_on ? "ON" : "OFF");
+                    }
+                    else if (result == ESP_ERR_NOT_SUPPORTED)
+                    {
+                        printf("\nRoom %d lighting status: Live data unavailable.\n",
+                               room_id);
+                    }
+                    else
+                    {
+                        printf("\nFailed to retrieve Room %d lighting status.\n",
+                               room_id);
+                    }
+                }
+            }
+            // Display historical access records
+            else if (strcmp(command, "access records") == 0)
+            {
+                // Access records contain sensitive information
+                // Only authenticated administrators can view them
+                if (!management_admin_is_logged_in())
+                {
+                    printf("\nAccess denied. Administrator login required.\n");
+                }
+                else
+                {
+                    char records[512];
+
+                    esp_err_t result =
+                        management_get_access_records(records, sizeof(records));
+
+                    if (result == ESP_OK)
+                    {
+                        printf("\n========== ACCESS RECORDS ==========\n");
+                        printf("%s\n", records);
+                        printf("====================================\n");
+                    }
+                    else if (result == ESP_ERR_NOT_SUPPORTED)
+                    {
+                        printf("\nAccess records: Live data unavailable.\n");
+                    }
+                    else
+                    {
+                        printf("\nFailed to retrieve access records.\n");
+                    }
+
+                    // Refresh administrator activity
+                    management_admin_update_activity();
                 }
             }
             else if (strcmp(command, "login") == 0)
