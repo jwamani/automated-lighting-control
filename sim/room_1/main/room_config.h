@@ -15,7 +15,7 @@
 // ---- light logic ----
 #define VACANCY_TIMEOUT_MS   15000   // demo value; 600000 (10 min) in real life
 #define WARN_MS              5000    // blink this long before switching off
-#define LDR_DARK_LEVEL       1       // Wokwi LDR: DO is LOW when dark, HIGH when bright
+#define LDR_DARK_LEVEL       1       // Wokwi LDR: DO goes HIGH when dark, LOW when bright
 
 // ---- reporting to the hub ----
 #define STATUS_PERIOD_MS     5000    // send status at least this often
