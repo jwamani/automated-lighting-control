@@ -190,8 +190,8 @@ Three rules cover every shared object in the system, and each shared object was 
 | Door hardware (servos/LEDs/LCD) | door task only | — | Rule 1 |
 | RFID chips + reader state | RFID task only | — | Rule 1 |
 | Log files (SD) | see §7.3 | nobody (append-only) | Rule 1, one writer per file |
-| User table (RAM cache of `users.csv`) | boot loader | decision task | Rule 1 *today*; gains a mutex the moment the console can add/remove users (§10) |
-| Schedule / override state (member E) | console task | decision task, reporting loop, door task | small state behind accessor functions; a mid-change read is addressed in §10 |
+| User table (RAM cache of `users.csv`) | console (add/remove) | decision task | Rule 3 (mutex) — lookups and table changes never overlap; the SD rewrite happens outside the lock so the decision task is never blocked by the card |
+| Schedule / override state (member E) | console task | decision task, reporting loop, door task | Rule 3 (mutex): the whole schedule is written under one lock, so every read sees a consistent open/close pair |
 | MQTT client | all tasks publish | — | component-internal locking (built into the ESP-IDF MQTT client, not our code) |
 
 The RAM-cache choice for the user table is Rule 1 carried into storage: the card is touched only at boot (to load) and when a user is added or deleted (to rewrite). Lookups — by far the most frequent operation — happen purely in RAM, so the SD bus is never on the decision's critical path.
@@ -266,8 +266,6 @@ Wokwi card presets map to the user table: **Blue** = Alice (admin), **Green** = 
 
 ## 10. Known limitations (stated honestly)
 
-- The user-add / user-remove commands in the console write through `storage.c`, but a simultaneous decision-task lookup could momentarily read the table mid-update; a mutex around the user table is the planned fix and is noted here rather than glossed over.
-- The schedule held by the console module is written field by field from the console task and read by other tasks through accessor functions; a read landing exactly between two field updates could see schedule times that don't quite go together. The impact is one reporting tick at most, and the same small mutex will cover it.
 - On a public broker the topic prefix acts as a group identifier, not as security — a production system would use a private broker with TLS and authentication.
 - The admin PIN is visible while typed on the serial monitor (UART cannot un-echo its input); this is stated rather than hidden.
 - An exit refused for non-emergency reasons is finally only unlocked by the authenticated emergency override — the safety trade-off is documented in §5.

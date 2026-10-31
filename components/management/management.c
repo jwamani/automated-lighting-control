@@ -7,6 +7,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 
 // Identifies messages from our management module
 static const char *TAG = "MANAGEMENT";
@@ -17,6 +18,10 @@ static int opening_minute = 0;
 
 static int closing_hour = 17;
 static int closing_minute = 0;
+
+// Guards the schedule and override state: the console task writes it while
+// the decision task and the reporting loop read it at any moment
+static SemaphoreHandle_t sched_lock = NULL;
 
 // Emergency override starts disabled
 static bool emergency_override = false;
@@ -55,6 +60,11 @@ esp_err_t management_init(void)
         return ESP_OK;
     }
 
+    if (sched_lock == NULL)
+    {
+        sched_lock = xSemaphoreCreateMutex();
+    }
+
     emergency_override = false;
     admin_logged_in = false;
 
@@ -79,13 +89,18 @@ esp_err_t management_init(void)
 static bool is_within_schedule(int hour, int minute)
 {
     int current_time = hour * 60 + minute;
+    bool open_now;
 
+    // The open and close times move together: read as one consistent snapshot
+    xSemaphoreTake(sched_lock, portMAX_DELAY);
     int opening_time = opening_hour * 60 + opening_minute;
 
     int closing_time = closing_hour * 60 + closing_minute;
+    xSemaphoreGive(sched_lock);
 
-    return (current_time >= opening_time &&
-            current_time < closing_time);
+    open_now = (current_time >= opening_time &&
+                current_time < closing_time);
+    return open_now;
 }
 
 // Check whether the building is currently open
@@ -122,7 +137,11 @@ bool management_emergency_exit_allowed(void)
         return false;
     }
 
-    return emergency_override;
+    bool enabled;
+    xSemaphoreTake(sched_lock, portMAX_DELAY);
+    enabled = emergency_override;
+    xSemaphoreGive(sched_lock);
+    return enabled;
 }
 
 // Update the building's operating hours
@@ -162,12 +181,14 @@ esp_err_t management_set_schedule(
         return ESP_ERR_INVALID_ARG;
     }
 
-    // Update the schedule
+    // Update the schedule atomically: the whole new schedule lands under one lock
+    xSemaphoreTake(sched_lock, portMAX_DELAY);
     opening_hour = open_hour;
     opening_minute = open_minute;
 
     closing_hour = close_hour;
     closing_minute = close_minute;
+    xSemaphoreGive(sched_lock);
 
     ESP_LOGI(TAG, "Building schedule updated");
 
@@ -288,7 +309,9 @@ esp_err_t management_set_emergency_override(bool enable)
     }
 
     // Update emergency override state
+    xSemaphoreTake(sched_lock, portMAX_DELAY);
     emergency_override = enable;
+    xSemaphoreGive(sched_lock);
 
     if (enable)
     {
