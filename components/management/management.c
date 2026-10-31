@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "management.h"
+#include "management_data.h"
 #include "esp_log.h"
 #include <stdbool.h>
 #include <time.h>
@@ -346,8 +347,13 @@ static void management_print_help(void)
     printf("schedule set          - Change building schedule\n");
     printf("override on           - Enable emergency override\n");
     printf("override off          - Disable emergency override\n");
-
-    printf("====================================\n");
+    printf("occupancy building    - Show current building occupancy\n");
+    printf("occupancy rooms <id>  - Show room occupancy status\n");
+    printf("lighting status <id>  - Show room lighting status\n");
+    printf("access records        - View access history (admin only)\n");
+    printf("loglevel info         - Enable informational system logs\n");
+    printf("loglevel quiet        - Show only system errors\n");
+    
 }
 
 // Display the current building management status
@@ -437,10 +443,148 @@ static void management_cli_task(void *pvParameters)
             {
                 management_print_help();
             }
+
+            else if (strcmp(command, "loglevel info") == 0)
+            {
+                esp_log_level_set("*", ESP_LOG_INFO);
+                printf("\nLog level set to INFO.\n");
+            }
+            else if (strcmp(command, "loglevel quiet") == 0)
+            {
+                esp_log_level_set("*", ESP_LOG_ERROR);
+                printf("\nQuiet mode enabled. Only errors will be logged.\n");
+            }
             // Process the status command
             else if (strcmp(command, "status") == 0)
             {
                 management_print_status();
+            }
+            // Display the current building occupancy
+            else if (strcmp(command, "occupancy building") == 0)
+            {
+                int count = 0;
+
+                esp_err_t result = management_get_building_occupancy(&count);
+
+                if (result == ESP_OK)
+                {
+                    printf("\nCurrent building occupancy: %d people\n", count);
+                }
+                else if (result == ESP_ERR_NOT_SUPPORTED)
+                {
+                    printf("\nBuilding occupancy: Live data unavailable.\n");
+                }
+                else
+                {
+                    printf("\nFailed to retrieve building occupancy.\n");
+                }
+            }
+            // Display occupancy status for a particular room
+            else if (strncmp(command, "occupancy rooms ", 16) == 0)
+            {
+                int room_id = 0;
+                char extra;
+
+                // Read the room number and reject unexpected extra input
+                if (sscanf(command + 16, "%d %c", &room_id, &extra) != 1 ||
+                    room_id <= 0)
+                {
+                    printf("\nInvalid room ID. Example: occupancy rooms 1\n");
+                }
+                else
+                {
+                    bool occupied = false;
+
+                    esp_err_t result =
+                        management_get_room_occupancy(room_id, &occupied);
+
+                    if (result == ESP_OK)
+                    {
+                        printf("\nRoom %d occupancy: %s\n",
+                               room_id, occupied ? "OCCUPIED" : "UNOCCUPIED");
+                    }
+                    else if (result == ESP_ERR_NOT_SUPPORTED)
+                    {
+                        printf("\nRoom %d occupancy: Live data unavailable.\n",
+                               room_id);
+                    }
+                    else
+                    {
+                        printf("\nFailed to retrieve Room %d occupancy.\n",
+                               room_id);
+                    }
+                }
+            }
+            // Display lighting status for a particular room
+            else if (strncmp(command, "lighting status ", 16) == 0)
+            {
+                int room_id = 0;
+                char extra;
+
+                // Extract the room number from the command
+                if (sscanf(command + 16, "%d %c", &room_id, &extra) != 1 ||
+                    room_id <= 0)
+                {
+                    printf("\nInvalid room ID. Example: lighting status 1\n");
+                }
+                else
+                {
+                    bool light_on = false;
+
+                    esp_err_t result =
+                        management_get_lighting_status(room_id, &light_on);
+
+                    if (result == ESP_OK)
+                    {
+                        printf("\nRoom %d lighting status: %s\n",
+                               room_id, light_on ? "ON" : "OFF");
+                    }
+                    else if (result == ESP_ERR_NOT_SUPPORTED)
+                    {
+                        printf("\nRoom %d lighting status: Live data unavailable.\n",
+                               room_id);
+                    }
+                    else
+                    {
+                        printf("\nFailed to retrieve Room %d lighting status.\n",
+                               room_id);
+                    }
+                }
+            }
+            // Display historical access records
+            else if (strcmp(command, "access records") == 0)
+            {
+                // Access records contain sensitive information
+                // Only authenticated administrators can view them
+                if (!management_admin_is_logged_in())
+                {
+                    printf("\nAccess denied. Administrator login required.\n");
+                }
+                else
+                {
+                    char records[512];
+
+                    esp_err_t result =
+                        management_get_access_records(records, sizeof(records));
+
+                    if (result == ESP_OK)
+                    {
+                        printf("\n========== ACCESS RECORDS ==========\n");
+                        printf("%s\n", records);
+                        printf("====================================\n");
+                    }
+                    else if (result == ESP_ERR_NOT_SUPPORTED)
+                    {
+                        printf("\nAccess records: Live data unavailable.\n");
+                    }
+                    else
+                    {
+                        printf("\nFailed to retrieve access records.\n");
+                    }
+
+                    // Refresh administrator activity
+                    management_admin_update_activity();
+                }
             }
             else if (strcmp(command, "login") == 0)
             {
@@ -636,12 +780,29 @@ static void management_cli_task(void *pvParameters)
             printf("\nCoCIS> ");
             fflush(stdout);
         }
+        else if (ch == '\b' || ch == 127)
+        {
+            // Remove the last character from the command
+            if (index > 0)
+            {
+                index--;
+                command[index] = '\0';
+
+                // Erase the character from the terminal
+                printf("\b \b");
+                fflush(stdout);
+            }
+        }
         else
         {
-            // Store characters until the command is complete
-            if (index < sizeof(command) - 1)
+            // Accept and display printable characters
+            if (ch >= 32 && ch <= 126 && index < sizeof(command) - 1)
             {
                 command[index++] = (char)ch;
+
+                // Display the character immediately
+                putchar(ch);
+                fflush(stdout);
             }
         }
     }
