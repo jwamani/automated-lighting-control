@@ -743,21 +743,29 @@ static void management_cli_task(void *pvParameters)
             printf("\nCoCIS> ");
             fflush(stdout);
         }
-       else if (ch == '\b' || ch == 127)
+     else if (ch == '\b' || ch == 127)
 {
-    // Remove the last character when Backspace is pressed
+    // Remove the last character from the command
     if (index > 0)
     {
         index--;
         command[index] = '\0';
+
+        // Erase the character from the terminal
+        printf("\b \b");
+        fflush(stdout);
     }
 }
 else
 {
-    // Store printable characters until the command is complete
+    // Accept and display printable characters
     if (ch >= 32 && ch <= 126 && index < sizeof(command) - 1)
     {
         command[index++] = (char)ch;
+
+        // Display the character immediately
+        putchar(ch);
+        fflush(stdout);
     }
 }
     }
