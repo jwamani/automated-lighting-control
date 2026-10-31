@@ -417,6 +417,17 @@ static void management_cli_task(void *pvParameters)
             {
                 management_print_help();
             }
+
+            else if (strcmp(command, "loglevel info") == 0)
+            {
+                esp_log_level_set("*", ESP_LOG_INFO);
+                printf("\nLog level set to INFO.\n");
+            }
+            else if (strcmp(command, "loglevel quiet") == 0)
+            {
+                esp_log_level_set("*", ESP_LOG_ERROR);
+                printf("\nQuiet mode enabled. Only errors will be logged.\n");
+            }
             // Process the status command
             else if (strcmp(command, "status") == 0)
             {
@@ -743,31 +754,31 @@ static void management_cli_task(void *pvParameters)
             printf("\nCoCIS> ");
             fflush(stdout);
         }
-     else if (ch == '\b' || ch == 127)
-{
-    // Remove the last character from the command
-    if (index > 0)
-    {
-        index--;
-        command[index] = '\0';
+        else if (ch == '\b' || ch == 127)
+        {
+            // Remove the last character from the command
+            if (index > 0)
+            {
+                index--;
+                command[index] = '\0';
 
-        // Erase the character from the terminal
-        printf("\b \b");
-        fflush(stdout);
-    }
-}
-else
-{
-    // Accept and display printable characters
-    if (ch >= 32 && ch <= 126 && index < sizeof(command) - 1)
-    {
-        command[index++] = (char)ch;
+                // Erase the character from the terminal
+                printf("\b \b");
+                fflush(stdout);
+            }
+        }
+        else
+        {
+            // Accept and display printable characters
+            if (ch >= 32 && ch <= 126 && index < sizeof(command) - 1)
+            {
+                command[index++] = (char)ch;
 
-        // Display the character immediately
-        putchar(ch); 
-        fflush(stdout);
-    }
-}
+                // Display the character immediately
+                putchar(ch);
+                fflush(stdout);
+            }
+        }
     }
 
     vTaskDelete(NULL);
