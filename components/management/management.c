@@ -328,6 +328,9 @@ static void management_print_help(void)
     printf("occupancy rooms <id>  - Show room occupancy status\n");
     printf("lighting status <id>  - Show room lighting status\n");
     printf("access records        - View access history (admin only)\n");
+    printf("loglevel info         - Enable informational system logs\n");
+    printf("loglevel quiet        - Show only system errors\n");
+    
 }
 
 // Display the current building management status
