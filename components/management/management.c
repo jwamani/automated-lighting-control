@@ -324,10 +324,10 @@ static void management_print_help(void)
     printf("schedule set          - Change building schedule\n");
     printf("override on           - Enable emergency override\n");
     printf("override off          - Disable emergency override\n");
+    printf("occupancy building    - Show current building occupancy\n");
     printf("occupancy rooms <id>  - Show room occupancy status\n");
     printf("lighting status <id>  - Show room lighting status\n");
     printf("access records        - View access history (admin only)\n");
-    printf("====================================\n");
 }
 
 // Display the current building management status
@@ -743,14 +743,23 @@ static void management_cli_task(void *pvParameters)
             printf("\nCoCIS> ");
             fflush(stdout);
         }
-        else
-        {
-            // Store characters until the command is complete
-            if (index < sizeof(command) - 1)
-            {
-                command[index++] = (char)ch;
-            }
-        }
+       else if (ch == '\b' || ch == 127)
+{
+    // Remove the last character when Backspace is pressed
+    if (index > 0)
+    {
+        index--;
+        command[index] = '\0';
+    }
+}
+else
+{
+    // Store printable characters until the command is complete
+    if (ch >= 32 && ch <= 126 && index < sizeof(command) - 1)
+    {
+        command[index++] = (char)ch;
+    }
+}
     }
 
     vTaskDelete(NULL);
