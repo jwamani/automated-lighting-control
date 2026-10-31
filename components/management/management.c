@@ -764,7 +764,7 @@ else
         command[index++] = (char)ch;
 
         // Display the character immediately
-        putchar(ch);
+        putchar(ch); 
         fflush(stdout);
     }
 }
