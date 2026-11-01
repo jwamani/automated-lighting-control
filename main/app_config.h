@@ -3,7 +3,10 @@
 #define WIFI_SSID "Wokwi-GUEST"
 #define WIFI_PASSWORD ""
 
-#define MQTT_BROKER_URI "mqtt://broker.emqx.io:1883"
+
+// use test.mosquitto.live or 
+#define MQTT_BROKER_URI "mqtt://172.20.10.6:1883"
+#define MQTT_TOPIC "demo/chat"
 
 // shared settings
 #define PUBLISH_PERIOD_MS 5000
