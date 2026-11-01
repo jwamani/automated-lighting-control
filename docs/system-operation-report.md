@@ -1,4 +1,4 @@
-# CoCIS Smart Access & Environmental Control System — System Operation Report
+# CoCIS Smart Access & Environmental Control System Operation Report
 
 ## Group B members
 
@@ -6,9 +6,9 @@
 | ------------------ | ------------------- |
 | Wamani Joshua      | 24/U/1415           |
 | Namugerwa Precious | 24/U/1051           |
-| Mutoni Esther      | 24/U/07511/PS       |
+| Mutoni Esther Mugisha    | 24/U/07511/PS       |
 | Mungi Benjamin     | 24/U/07305/PS       |
-| Namutebi Sulaina   | 24/U/09393/PS       |
+| Namutebi Sulaina Luwambya  | 24/U/09393/PS       |
 
 ---
 

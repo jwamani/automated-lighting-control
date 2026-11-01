@@ -6,6 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "rooms.h"
+#include "storage.h"
 
 static const char *TAG = "rooms";
 

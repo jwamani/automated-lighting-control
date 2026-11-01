@@ -969,9 +969,9 @@ CONFIG_ESPTOOLPY_MONITOR_BAUD=115200
 # Partition Table
 #
 # default:
-CONFIG_PARTITION_TABLE_SINGLE_APP=y
+# CONFIG_PARTITION_TABLE_SINGLE_APP is not set
 # default:
-# CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE is not set
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
 # default:
 # CONFIG_PARTITION_TABLE_TWO_OTA is not set
 # default:
@@ -981,7 +981,7 @@ CONFIG_PARTITION_TABLE_SINGLE_APP=y
 # default:
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 # default:
-CONFIG_PARTITION_TABLE_FILENAME="partitions_singleapp.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions_singleapp_large.csv"
 # default:
 CONFIG_PARTITION_TABLE_OFFSET=0x8000
 # default:
@@ -1078,6 +1078,13 @@ CONFIG_COMPILER_CXX_GLIBCXX_CONSTEXPR_NO_CHANGE=y
 #
 # If a component configuration is missing, please add it to the main component's requirements
 #
+
+#
+# Console Library
+#
+# default:
+# CONFIG_CONSOLE_SORTED_HELP is not set
+# end of Console Library
 
 #
 # eFuse Bit Manager
