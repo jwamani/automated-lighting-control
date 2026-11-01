@@ -1,70 +1,133 @@
-# Minimal ESP-IDF MQTT demo for Wokwi
+# Automated Lighting Control
 
-One ESP32-S3 node that:
+An ESP32-S3-based building access and automated-lighting system simulated with
+Wokwi. A central hub controls building access, while two room terminals detect
+occupancy, control their lights, and report status to the hub over MQTT.
 
-- joins the Wokwi virtual Wi-Fi (`Wokwi-GUEST`)
-- connects to the free public broker `broker.emqx.io:1883`
-- subscribes to `demo/chat`
-- publishes a message every 5 seconds
-- prints every message it receives
+The system uses the Wokwi virtual Wi-Fi network (`Wokwi-GUEST`) and the public
+MQTT broker `broker.emqx.io:1883`. The MQTT topic prefix is `cocis-g1/`.
 
-All settings live in `main/app_config.h`.
+## System Components
 
-## Setup
+### Building hub
 
-1. Build:
+The root project and `sim/master` contain the hub firmware. The hub:
 
-   ```
-   idf.py build
-   ```
+- connects to Wi-Fi and MQTT;
+- receives room status, online, and intrusion messages;
+- manages entry and exit access using RFID readers;
+- tracks occupancy and prevents invalid entry or exit events;
+- controls entry and exit doors with servos;
+- displays access and building information on an I2C LCD;
+- indicates access decisions with green and red LEDs;
+- manages opening hours, administrator authentication, and emergency exit mode;
+- stores users and access, room, and system logs on the simulated SD card;
+- publishes the building state (`open`, `closed`, or `emergency`) to the rooms.
 
-2. Open this folder in VS Code with the Wokwi extension.
-3. Press `F1` and run `Wokwi: Start Simulator`.
-4. Wokwi uses the free public gateway by default (no `[net]` section in `wokwi.toml`).
+### Room terminals
 
-## Expected output
+`sim/room_1` and `sim/room_2` contain the room firmware. Each room terminal:
 
-```
-I (1234) demo: Wi-Fi connected, IP: 10.10.0.2
-I (2345) demo: MQTT connected as node-000111
-RX demo/chat: node-000111 #1
-```
+- detects occupancy using a PIR sensor and ultrasonic distance sensor;
+- measures ambient light with an LDR;
+- switches its lamp according to occupancy and light level;
+- turns the lamp off after the configured vacancy timeout;
+- reports occupancy, light, energy-saving, and intrusion status to the hub;
+- responds to the building state published by the hub.
 
-Every node sees its own message and the messages from the other nodes.
+### Shared and project files
 
-## Multiple nodes
+| Path                                 | Purpose                                            |
+| ------------------------------------ | -------------------------------------------------- |
+| `main/`                              | Main hub implementation and shared networking code |
+| `main/app_config.h`                  | Wi-Fi, MQTT broker, topic, and timing settings     |
+| `main/hub_config.h`                  | Hub GPIO assignments and access-control timings    |
+| `sim/master/`                        | Standalone Wokwi hub workspace                     |
+| `sim/room_1/`                        | Standalone Wokwi room-terminal workspace           |
+| `sim/room_2/`                        | Second room-terminal workspace                     |
+| `diagram.json`                       | Root hub circuit diagram                           |
+| `mosquitto.conf`                     | Optional local Mosquitto broker configuration      |
+| `sdkconfig` and `sdkconfig.defaults` | ESP-IDF project configuration                      |
 
-Wokwi runs one board per workspace. This project has three simulation
-workspaces, all using the same firmware:
+## MQTT Communication
 
-| Workspace | Node | macAddress |
-|---|---|---|
-| `.` | node1 | `24:0a:c4:00:01:11` |
-| `sim/node2` | node2 | `24:0a:c4:00:01:12` |
-| `sim/master` | master | `24:0a:c4:00:01:13` |
+The hub subscribes to `cocis-g1/rooms/#`. Room terminals publish status and
+presence information under topics such as:
 
-After every build, copy the firmware into the simulation folders:
-
-```
-python sync_sims.py
-```
-
-Then open each folder as its own VS Code window and run
-`Wokwi: Start Simulator` in each. All three connect to `demo/chat` and see each
-other's messages.
-
-The MAC address gives each node a unique client ID (`node-xxxxxx`), so the broker
-does not disconnect them as duplicates.
-
-## Watch all messages from your PC
-
-```
-mosquitto_sub -h broker.emqx.io -t "demo/#" -v
+```text
+cocis-g1/rooms/<room-id>/status
+cocis-g1/rooms/<room-id>/online
+cocis-g1/rooms/alert
 ```
 
-## Important
+The hub publishes the current building state on:
 
-`broker.emqx.io` is a public test broker. Anyone can read the messages. Do not
-send secrets. Keep the `demo/` topic prefix or use your own unique prefix.
+```text
+cocis-g1/building
+```
 
-Do not run this with `idf.py qemu`: QEMU does not emulate Wi-Fi.
+The public broker is shared by other users, so do not publish passwords,
+personal data, or other sensitive information.
+
+## Requirements
+
+- ESP-IDF 5.3 or newer. The current development setup uses ESP-IDF 6.0.2.
+- ESP32-S3 toolchain and Python environment installed by ESP-IDF.
+- VS Code with the Wokwi extension.
+- PowerShell or the ESP-IDF PowerShell terminal. Do not use Git Bash, MSYS, or
+  MinGW shells; current ESP-IDF tooling does not support them.
+- `mosquitto_sub` is optional and is only needed to inspect MQTT traffic from a
+  host machine.
+
+## Setup and Build
+
+Open the repository in VS Code, select the ESP-IDF installation, and open an
+ESP-IDF PowerShell terminal in the relevant workspace. For a fresh project,
+set the target once before building:
+
+```powershell
+idf.py set-target esp32s3
+idf.py build
+```
+
+Build the workspaces independently:
+
+```powershell
+# Building hub sources from the repository root
+cd C:\path\to\automated-lighting-control
+idf.py set-target esp32s3
+idf.py build
+
+# Building room 1 and room 2
+cd sim\room_1
+idf.py set-target esp32s3
+idf.py build
+
+cd sim\room_2
+idf.py set-target esp32s3
+idf.py build
+```
+
+Each Wokwi workspace expects its own `build` directory. The corresponding
+`wokwi.toml` file selects the generated ELF and flash arguments.
+
+## Run the Simulation
+
+1. Build the hub and both room workspaces as shown above.
+2. Open `sim/master` in one VS Code window and run `Wokwi: Start Simulator`.
+3. Open `sim/room_1` and `sim/room_2` in separate VS Code windows.
+4. Run `Wokwi: Start Simulator` in both room workspaces.
+5. Use each Wokwi serial monitor to view access decisions, room reports, and
+   MQTT connection messages.
+
+The hub diagram contains two MFRC522 RFID readers, two door servos, an I2C
+LCD, entry and exit status LEDs, and a microSD card. The room diagrams contain
+the sensors and lamp used for occupancy-based lighting control.
+
+To inspect all project messages from a machine with Mosquitto installed:
+
+```powershell
+mosquitto_sub -h broker.emqx.io -t "cocis-g1/#" -v
+```
+
+Or if you find the public brokers unreliable, you can run a local mosquitto broker with the provided `mosquitto.conf` file and make sure to listen to all interfaces. You can then pass in your pc's IP address to the `app_config.h` under the `MQTT_BROKER` define. You can then run the same command as above to inspect all messages.

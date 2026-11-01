@@ -25,6 +25,8 @@ void on_message(const char *topic, const char *data)
         light_set_building_open(true);
     } else if (strcasecmp(data, "closed") == 0) {
         light_set_building_open(false);
+    } else if (strcasecmp(data, "emergency") == 0) {
+        light_set_building_open(true);   // exits unlocked; the room behaves as open
     }
 }
 

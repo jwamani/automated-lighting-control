@@ -1,4 +1,4 @@
 {
-  "idf.currentSetup": "C:\\esp\\v6.1-beta1\\esp-idf",
-  "cmake.sourceDirectory": "${workspaceFolder}/benjamin_storage"
+	"idf.currentSetup": "C:\\esp\\v6.0.2\\esp-idf",
+	"cmake.sourceDirectory": "${workspaceFolder}/benjamin_storage"
 }
