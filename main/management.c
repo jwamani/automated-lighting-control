@@ -8,9 +8,10 @@
 #include <time.h>
 #include "esp_timer.h"
 #include "esp_system.h"
+#include "esp_random.h"
 #include "esp_console.h"
 #include "nvs.h"
-#include "mbedtls/sha256.h"
+#include "psa/crypto.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -81,7 +82,11 @@ static bool admin_pin_hash_value(const char *pin, const uint8_t *salt, uint8_t *
 
     memcpy(input, salt, ADMIN_PIN_SALT_LEN);
     memcpy(input + ADMIN_PIN_SALT_LEN, pin, pin_len);
-    return mbedtls_sha256(input, ADMIN_PIN_SALT_LEN + pin_len, hash, 0) == 0;
+    size_t hash_len = 0;
+    return psa_hash_compute(PSA_ALG_SHA_256, input,
+                            ADMIN_PIN_SALT_LEN + pin_len,
+                            hash, ADMIN_PIN_HASH_LEN, &hash_len) == PSA_SUCCESS &&
+           hash_len == ADMIN_PIN_HASH_LEN;
 }
 
 static void admin_pin_load(void)
@@ -159,6 +164,12 @@ esp_err_t management_init(void)
         sched_lock = xSemaphoreCreateMutex();
     }
 
+    if (psa_crypto_init() != PSA_SUCCESS)
+    {
+        ESP_LOGE(TAG, "PSA Crypto initialization failed");
+        return ESP_FAIL;
+    }
+
     emergency_override = false;
     admin_logged_in = false;
 
@@ -170,11 +181,9 @@ esp_err_t management_init(void)
 
     ESP_LOGI(TAG, "Management system initialized");
 
-    ESP_LOGI(TAG, "Opening time: %02d:%02d",
-             opening_hour, opening_minute);
+    ESP_LOGI(TAG, "Opening time: %02d:%02d", opening_hour, opening_minute);
 
-    ESP_LOGI(TAG, "Closing time: %02d:%02d",
-             closing_hour, closing_minute);
+    ESP_LOGI(TAG, "Closing time: %02d:%02d", closing_hour, closing_minute);
 
     return ESP_OK;
 }
