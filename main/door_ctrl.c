@@ -91,9 +91,12 @@ static void door_task(void *arg)
 {
     int64_t close_at[2]   = { 0, 0 };   /* when to close each door (0 = closed) */
     int64_t led_off_at[2] = { 0, 0 };   /* when to switch each LED pair off     */
+    int64_t blink_at[2]    = { 0, 0 };   /* next emergency LED toggle             */
     int64_t message_until = 0;          /* LCD shows a result until this time   */
     int64_t last_refresh  = 0;
     bool    emergency     = false;
+    bool    blinking      = false;
+    bool    blink_on      = false;
     door_cmd_t cmd;
 
     while (1) {
@@ -104,6 +107,8 @@ static void door_task(void *arg)
 
             switch (cmd.type) {
             case CMD_RESULT:
+                blinking = false;
+                blink_at[d] = 0;
                 lcd_print(0, cmd.line1);
                 lcd_print(1, cmd.line2);
                 message_until = t0 + MESSAGE_SHOW_MS;
@@ -120,12 +125,17 @@ static void door_task(void *arg)
 
             case CMD_EMERGENCY_ON:
                 emergency = true;
+                blinking = true;
+                blink_on = true;
+                blink_at[SIDE_EXIT] = t0 + 500;
                 servo_set_angle(SIDE_EXIT, SERVO_OPEN_DEG);
-                leds_set(SIDE_EXIT, true, false);
+                leds_set(SIDE_EXIT, true, true);
                 break;
 
             case CMD_EMERGENCY_OFF:
                 emergency = false;
+                blinking = false;
+                blink_at[SIDE_EXIT] = 0;
                 servo_set_angle(SIDE_EXIT, SERVO_CLOSED_DEG);
                 leds_set(SIDE_EXIT, false, false);
                 close_at[SIDE_EXIT]   = 0;
@@ -136,6 +146,12 @@ static void door_task(void *arg)
         }
 
         int64_t t = now_ms();
+
+        if (emergency && blinking && t >= blink_at[SIDE_EXIT]) {
+            blink_on = !blink_on;
+            leds_set(SIDE_EXIT, blink_on, blink_on);
+            blink_at[SIDE_EXIT] = t + 500;
+        }
 
         /* Close doors and switch LEDs off when their time is up.
            The EXIT door stays open while the emergency override is on. */

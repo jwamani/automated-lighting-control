@@ -15,6 +15,7 @@
 #include "occupancy.h"
 #include "rooms.h"
 #include "storage.h"
+#include "door_ctrl.h"
 
 #define ACCESS_LOG_PATH "/sdcard/access_log.csv"
 
@@ -317,6 +318,7 @@ esp_err_t management_set_emergency_override(bool enable)
     xSemaphoreTake(sched_lock, portMAX_DELAY);
     emergency_override = enable;
     xSemaphoreGive(sched_lock);
+    door_emergency_unlock(enable);
 
     if (enable)
     {
