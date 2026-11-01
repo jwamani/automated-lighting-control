@@ -29,7 +29,7 @@
 13. [Synchronisation design: tasks, mutexes & semaphores](#13-synchronisation-design-tasks-mutexes--semaphores)
 14. [Implemented features & requirements traceability](#14-implemented-features--requirements-traceability)
 15. [Known limitations](#15-known-limitations)
-16. [Wokwi simulation links](#16-wokwi-simulation-links)
+16. [Resource links](#16-resource-links)
 17. [Individual contributions](#17-individual-contributions)
 
 ---
@@ -664,7 +664,15 @@ The three boards never modify the same variable at the same time by topology: ro
 ## 16. Resource links
 
 <!-- github link to project -->
+#### 16.1 GitHub repository
+
+<https://github.com/jwamani/automated-lighting-control>
+
 <!-- google drive link to videos -->
+#### 16.2 Google drive with videos 
+
+<https://drive.google.com/drive/folders/1VYpr5ftiCiQIVyYCSOmb6xd2puGugo_1?usp=sharing>
+
 
 ## 17. Individual contributions
 
