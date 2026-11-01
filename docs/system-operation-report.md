@@ -298,7 +298,7 @@ The `decide()` function checks conditions in this exact order:
 1. **Emergency override on + exit side** → `ACCESS_EMERGENCY_EXIT` (everyone may leave during emergency).
 2. **Card known?** (user lookup) → `DENIED_UNKNOWN` if not.
 3. **Card enabled?** → `DENIED_DISABLED` if disabled.
-4. **Building open?** (`schedule_is_open()`) → `DENIED_OUTSIDE_HOURS` — applies to entry **and** exit per requirement 2.6.
+4. **Building open?** (`schedule_is_open()`) → `DENIED_OUTSIDE_HOURS` — applies to entry **and** exit.
 5. **Anti-passback** — entering while already inside, or exiting while not inside → `DENIED_ALREADY_INSIDE` / `DENIED_NOT_INSIDE`.
 6. Otherwise → `ACCESS_GRANTED`.
 
@@ -483,7 +483,7 @@ From that point, echo, line editing, history, and the prompt are the component's
 
 `help` is auto-generated from the registered command table.
 
-#### 11.5 Masked PIN (requirement 2.6)
+#### 11.5 Masked PIN
 
 With `esp_console`, a PIN passed as an argument would be echoed and stored in command history — unacceptable. So `login` takes no argument: its handler temporarily takes over the raw stream, printing one `*` per character with Backspace support. The PIN never lands in REPL history. Attempt counter, lockout (3 failures → 60 s), and 5-minute session timeout are enforced.
 
