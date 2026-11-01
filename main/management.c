@@ -7,7 +7,10 @@
 #include <stdbool.h>
 #include <time.h>
 #include "esp_timer.h"
+#include "esp_system.h"
 #include "esp_console.h"
+#include "nvs.h"
+#include "mbedtls/sha256.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -42,8 +45,13 @@ static bool initialized = false;
 // Tracks whether an administrator is authenticated
 static bool admin_logged_in = false;
 
-// Temporary demonstration PIN
-static const char *admin_pin = "2468";
+#define ADMIN_PIN_MAX_LEN 15
+#define ADMIN_PIN_SALT_LEN 16
+#define ADMIN_PIN_HASH_LEN 32
+
+static uint8_t admin_pin_salt[ADMIN_PIN_SALT_LEN];
+static uint8_t admin_pin_hash[ADMIN_PIN_HASH_LEN];
+static bool admin_pin_ready = false;
 
 // Maximum number of consecutive incorrect PIN attempts
 #define MAX_LOGIN_ATTEMPTS 3
@@ -61,6 +69,82 @@ static int64_t lockout_until = 0;
 
 // Time of the administrator's last activity
 static int64_t last_admin_activity = 0;
+
+static bool admin_pin_hash_value(const char *pin, const uint8_t *salt, uint8_t *hash)
+{
+    uint8_t input[ADMIN_PIN_SALT_LEN + ADMIN_PIN_MAX_LEN];
+    size_t pin_len = strlen(pin);
+    if (pin_len == 0 || pin_len > ADMIN_PIN_MAX_LEN)
+    {
+        return false;
+    }
+
+    memcpy(input, salt, ADMIN_PIN_SALT_LEN);
+    memcpy(input + ADMIN_PIN_SALT_LEN, pin, pin_len);
+    return mbedtls_sha256(input, ADMIN_PIN_SALT_LEN + pin_len, hash, 0) == 0;
+}
+
+static void admin_pin_load(void)
+{
+    nvs_handle_t handle;
+    size_t salt_len = sizeof admin_pin_salt;
+    size_t hash_len = sizeof admin_pin_hash;
+
+    if (nvs_open("security", NVS_READWRITE, &handle) != ESP_OK)
+    {
+        return;
+    }
+
+    admin_pin_ready = nvs_get_blob(handle, "pin_salt", admin_pin_salt, &salt_len) == ESP_OK && nvs_get_blob(handle, "pin_hash", admin_pin_hash, &hash_len) == ESP_OK && salt_len == sizeof admin_pin_salt && hash_len == sizeof admin_pin_hash;
+    nvs_close(handle);
+}
+
+static esp_err_t admin_pin_set(const char *pin)
+{
+    size_t pin_len = strlen(pin);
+    if (pin_len < 4 || pin_len > ADMIN_PIN_MAX_LEN)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (admin_pin_ready && !management_admin_is_logged_in())
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    uint8_t salt[ADMIN_PIN_SALT_LEN];
+    uint8_t hash[ADMIN_PIN_HASH_LEN];
+    esp_fill_random(salt, sizeof salt);
+    if (!admin_pin_hash_value(pin, salt, hash))
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("security", NVS_READWRITE, &handle);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+    err = nvs_set_blob(handle, "pin_salt", salt, sizeof salt);
+    if (err == ESP_OK)
+    {
+        err = nvs_set_blob(handle, "pin_hash", hash, sizeof hash);
+    }
+    if (err == ESP_OK)
+    {
+        err = nvs_commit(handle);
+    }
+    nvs_close(handle);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+
+    memcpy(admin_pin_salt, salt, sizeof salt);
+    memcpy(admin_pin_hash, hash, sizeof hash);
+    admin_pin_ready = true;
+    return ESP_OK;
+}
 
 // Initialize the management system
 esp_err_t management_init(void)
@@ -228,8 +312,20 @@ bool management_admin_login(const char *pin)
         return false;
     }
 
+    uint8_t candidate_hash[ADMIN_PIN_HASH_LEN];
+    bool pin_matches = admin_pin_ready && admin_pin_hash_value(pin, admin_pin_salt, candidate_hash);
+    if (pin_matches)
+    {
+        uint8_t difference = 0;
+        for (size_t i = 0; i < sizeof candidate_hash; i++)
+        {
+            difference |= candidate_hash[i] ^ admin_pin_hash[i];
+        }
+        pin_matches = (difference == 0);
+    }
+
     // Check whether the PIN is correct
-    if (strcmp(pin, admin_pin) == 0)
+    if (pin_matches)
     {
         admin_logged_in = true;
 
@@ -408,29 +504,12 @@ static int cmd_status(int argc, char **argv)
     return 0;
 }
 
-// login reads the PIN through the raw stream, printing one asterisk per
-// character, so the PIN is never echoed and never lands in the REPL history
-static int cmd_login(int argc, char **argv)
+static void read_masked_pin(char *pin, size_t capacity)
 {
-    (void)argc;
-    (void)argv;
-
-    if (management_admin_is_logged_in())
-    {
-        printf("An administrator is already logged in.\n");
-        return 0;
-    }
-
-    printf("Enter administrator PIN: ");
-    fflush(stdout);
-
-    char pin[16];
-    int pin_index = 0;
-
+    size_t pin_index = 0;
     while (1)
     {
         int ch = getchar();
-
         if (ch == EOF)
         {
             clearerr(stdin);
@@ -447,7 +526,7 @@ static int cmd_login(int argc, char **argv)
             printf("\b \b");
             fflush(stdout);
         }
-        else if (ch >= 0x20 && ch < 0x7F && pin_index < (int)sizeof(pin) - 1)
+        else if (ch >= 0x20 && ch < 0x7F && pin_index + 1 < capacity)
         {
             pin[pin_index++] = (char)ch;
             printf("*");
@@ -456,6 +535,53 @@ static int cmd_login(int argc, char **argv)
     }
     pin[pin_index] = '\0';
     printf("\n");
+}
+
+static int cmd_pin(int argc, char **argv)
+{
+    if (argc != 2 || strcmp(argv[1], "set") != 0)
+    {
+        printf("Usage: pin set\n");
+        return 1;
+    }
+    if (admin_pin_ready && !management_admin_is_logged_in())
+    {
+        printf("Administrator login required to change the PIN.\n");
+        return 1;
+    }
+
+    char pin[ADMIN_PIN_MAX_LEN + 1];
+    printf("Enter new administrator PIN: ");
+    fflush(stdout);
+    read_masked_pin(pin, sizeof pin);
+    esp_err_t err = admin_pin_set(pin);
+    memset(pin, 0, sizeof pin);
+    if (err != ESP_OK)
+    {
+        printf("PIN was not stored. Use 4 to %d characters.\n",
+               ADMIN_PIN_MAX_LEN);
+        return 1;
+    }
+    printf("Administrator PIN stored securely.\n");
+    return 0;
+}
+
+static int cmd_login(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    if (management_admin_is_logged_in())
+    {
+        printf("An administrator is already logged in.\n");
+        return 0;
+    }
+
+    printf("Enter administrator PIN: ");
+    fflush(stdout);
+
+    char pin[ADMIN_PIN_MAX_LEN + 1];
+    read_masked_pin(pin, sizeof pin);
 
     if (management_admin_login(pin))
     {
@@ -924,6 +1050,8 @@ esp_err_t management_start_cli(void)
         return ESP_ERR_INVALID_STATE;
     }
 
+    admin_pin_load();
+
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     repl_config.prompt = "CoCIS> ";
     repl_config.max_history_len = 10;
@@ -939,6 +1067,7 @@ esp_err_t management_start_cli(void)
         {.command = "status", .help = "Show building status", .func = &cmd_status},
         {.command = "login", .help = "Administrator login (PIN is masked)", .func = &cmd_login},
         {.command = "logout", .help = "Administrator logout", .func = &cmd_logout},
+        {.command = "pin", .help = "Set administrator PIN", .hint = "set", .func = &cmd_pin},
         {.command = "override", .help = "Emergency override", .hint = "on|off", .func = &cmd_override},
         {.command = "schedule", .help = "Building access schedule", .hint = "show | set <HH:MM> <HH:MM>", .func = &cmd_schedule},
         {.command = "logs", .help = "Runtime log level", .hint = "info|warn", .func = &cmd_logs},

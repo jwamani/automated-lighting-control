@@ -1,3 +1,4 @@
 CONFIG_IDF_TARGET="esp32s3"
-# The console component pushes the app beyond the default 1 MB partition.
-CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_NVS_ENCRYPTION=y

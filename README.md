@@ -79,6 +79,20 @@ personal data, or other sensitive information.
 - `mosquitto_sub` is optional and is only needed to inspect MQTT traffic from a
   host machine.
 
+## Administrator PIN setup
+
+The administrator PIN is not compiled into the firmware. On first boot, use
+the serial CLI:
+
+```text
+pin set
+```
+
+Enter a PIN of 4 to 15 characters, then log in with `login`. The salted PIN
+verifier is stored in encrypted NVS. To change it later, log in first and run
+`pin set` again. Erase the device's flash before reprovisioning a simulator or
+board that contains an older unencrypted NVS layout.
+
 ## Setup and Build
 
 Open the repository in VS Code, select the ESP-IDF installation, and open an
