@@ -75,7 +75,6 @@ static void wifi_start(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config)); // Set Wi-Fi configuration
     ESP_ERROR_CHECK(esp_wifi_start());                               // Start Wi-Fi
 
-    // wait, but do not block forever: the hub must keep working (doors, access)
     // even when there is no network. The handlers above reconnect in the background.
     xEventGroupWaitBits(wifi_events, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, pdMS_TO_TICKS(15000));
 }
@@ -139,7 +138,7 @@ void net_start(const char *client_id, const char *subscribe_topic, const char *s
         .credentials.client_id = my_client_id
     };
 
-    // last will; broker will send this message if the client disconnects unexpectedly. who receives this message? an
+    // last will; broker will send this message if the client disconnects unexpectedly.
     if (status_topic) {
         mqtt_config.session.last_will.topic = status_topic;
         mqtt_config.session.last_will.msg = offline_msg;

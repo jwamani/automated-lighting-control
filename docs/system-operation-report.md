@@ -254,13 +254,12 @@ On `MQTT_EVENT_CONNECTED`, the client subscribes to its topic at QoS 1 and, if i
 
 `app_main` runs initialisation in a deliberate order:
 
-1. `management_init()` — schedule, admin session, console subsystem.
-2. `management_register_status_ext(print_hub_status_ext)` — hooks occupancy + rooms into the `status` command.
-3. `management_start_cli()` — starts the `esp_console` REPL on UART0 (`CoCIS> ` prompt).
-4. `net_start(HUB_CLIENT_ID, TOPIC_ROOMS_ALL, NULL)` — WiFi, SNTP, MQTT; subscribes to all room topics. Hub has no status topic (it is always online).
-5. `rooms_init()` — allocates the room table mutex.
-6. `storage_init()` — mounts SD card, loads `users.csv` into RAM. Must run before RFID starts so user lookups succeed.
-7. `access_init()` — occupancy list, door hardware, decision task, RFID readers.
+1. `management_init()` — schedule and administrator session state.
+2. `net_start(HUB_CLIENT_ID, TOPIC_ROOMS_ALL, NULL)` — NVS, WiFi, SNTP, and MQTT; subscribes to all room topics.
+3. `rooms_init()` — allocates the room table mutex.
+4. `storage_init()` — mounts the SD card and loads `users.csv` into RAM.
+5. `access_init()` — occupancy list, door hardware, decision task, and RFID readers.
+6. `management_start_cli()` — starts the `esp_console` REPL on UART0 after the door task and other services are ready.
 
 After init, the main loop calls `building_announce()` every `PUBLISH_PERIOD_MS`, publishing retained building state.
 
@@ -487,7 +486,17 @@ From that point, echo, line editing, history, and the prompt are the component's
 
 With `esp_console`, a PIN passed as an argument would be echoed and stored in command history — unacceptable. So `login` takes no argument: its handler temporarily takes over the raw stream, printing one `*` per character with Backspace support. The PIN never lands in REPL history. Attempt counter, lockout (3 failures → 60 s), and 5-minute session timeout are enforced.
 
-#### 11.6 Status extension hook
+#### 11.6 Administrator credential storage
+
+The administrator PIN is not compiled into the firmware and is not stored in plaintext. The project defines a custom flash layout with an NVS partition for persistent key-value data. The credential uses the `security` NVS namespace and stores two values: a random 16-byte salt and a 32-byte SHA-256 verifier.
+
+The `pin set` command accepts a 4-to-15-character PIN through the masked input path. The system generates a new salt, hashes `salt + PIN` using the PSA Crypto API, and writes the salt and verifier to NVS before committing the change. The PIN buffer is cleared after use. Once a PIN exists, changing it requires an authenticated administrator session.
+
+At startup, the CLI loads the salt and verifier from NVS. During `login`, the entered PIN is combined with the stored salt and hashed again. The new verifier is compared with the stored verifier; the PIN itself is never recovered or compared directly. Three failed attempts cause a 60-second lockout, and an authenticated session expires after five minutes.
+
+Wokwi cannot emulate the ESP32 eFuse operations required for hardware-encrypted NVS, so the simulator configuration keeps NVS encryption disabled while retaining the salted verifier design. Real hardware provisioning should enable encrypted NVS, flash encryption, and secure boot.
+
+#### 11.7 Status extension hook
 
 The console component must not reach into the hub firmware's internals. The seam is one registration hook:
 
@@ -497,13 +506,13 @@ management_register_status_ext(print_hub_status_ext);
 
 `print_hub_status_ext()` prints who is inside (from `occupancy.c`) and each room's occupied/light/online state (from `rooms.c`). The console calls it at the end of `status` if registered. Access records remain on the SD card by design.
 
-#### 11.7 Log discipline: the `logs` command
+#### 11.8 Log discipline: the `logs` command
 
 Console and logs still share UART0 — that is physics, not software. `logs warn` sets the global level to `ESP_LOG_WARN` via `esp_log_level_set("*", ESP_LOG_WARN)`, so periodic INFO noise from MQTT/WiFi stops during a session. `logs info` restores verbose output. SD logging is unaffected (only the serial channel is quieted). Default during a demo: `logs warn`.
 
-#### 11.8 Build impact
+#### 11.9 Build impact
 
-The console component pushed the app past the default 1 MB app partition (`0x105c90 > 0x100000`). `sdkconfig.defaults` sets `CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y`.
+The project uses a custom partition table so the NVS area and the large factory application area are defined together. The simulator configuration keeps hardware flash encryption disabled because Wokwi cannot emulate eFuse programming.
 
 ---
 
@@ -656,6 +665,7 @@ The three boards never modify the same variable at the same time by topology: ro
 
 - On a public broker the topic prefix is a group identifier, not security. Production would use a private broker with TLS and authentication.
 - The admin PIN is masked while typed but UART cannot un-echo; authentication happens on a shared, unencrypted serial line.
+- Wokwi stores the salted PIN verifier through NVS, but hardware-backed NVS encryption is disabled in the simulator. Real-device provisioning should enable encrypted NVS, flash encryption, and secure boot.
 - Logs and console share UART0; `logs warn` is policy, not isolation. On real hardware a second UART would be proper isolation.
 - An exit refused for non-emergency reasons is finally unlocked only by authenticated emergency override — a documented safety trade-off.
 

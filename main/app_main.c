@@ -33,7 +33,7 @@ void app_main(void)
     while (1)
     {
         building_announce(); // retained: open/closed/emergency + inside count
-        // rooms_tick();                           // optional safety net: flag rooms that stopped reporting
+        // rooms_tick();   // optional safety net: flag rooms that stopped reporting
         vTaskDelay(pdMS_TO_TICKS(PUBLISH_PERIOD_MS));
     }
 }
